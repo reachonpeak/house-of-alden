@@ -1,0 +1,743 @@
+@charset "UTF-8";
+/* ==========================================================================
+   HOUSE OF ALDEN — aged-paper heritage catalogue
+   Built against DESIGN_SPEC.md. Tokens are defined ONCE, here.
+   ========================================================================== */
+
+/* --- 1. Tokens ----------------------------------------------------------- */
+:root {
+  --paper:      #EDE4D1;
+  --paper-warm: #EAE0CA;
+  --paper-deep: #DDD0B0;
+  --ink:        #3B2B1A;
+  --ink-body:   #5A4630;
+  --ink-soft:   #7A6349;
+  --bark:       #3A2A19;
+  --bark-lift:  #6B5334;
+  --gold:       #A98A56;
+  --gold-soft:  #C4B392;
+  --line:       #C9B896;
+
+  --font-display: "Cormorant Garamond", "Cormorant", Garamond, "Times New Roman", serif;
+  --font-body:    "EB Garamond", Garamond, "Times New Roman", serif;
+
+  --s-1: 4px;  --s-2: 8px;  --s-3: 16px; --s-4: 24px;
+  --s-5: 32px; --s-6: 48px; --s-7: 64px; --s-8: 96px;
+
+  --ease: cubic-bezier(.22,.61,.36,1);
+  --dur:  260ms;
+
+  --maxw: 1272px;
+
+  /* Fine paper grain, generated — no external asset, no network cost. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+}
+
+/* --- 2. Reset ------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+img, svg { display: block; max-width: 100%; }
+img { height: auto; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+a { color: inherit; }
+ul, ol { list-style: none; padding: 0; }
+
+/* --- 3. Paper ------------------------------------------------------------ */
+body {
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-body);
+  background-color: var(--paper);
+  /* Vignette sits under the grain so edges read as an aged sheet. */
+  background-image:
+    radial-gradient(120% 90% at 50% 40%, rgba(0,0,0,0) 42%, rgba(90,62,30,.10) 78%, rgba(70,48,22,.20) 100%);
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: var(--grain);
+  mix-blend-mode: multiply;
+  opacity: .5;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* --- 4. Type ------------------------------------------------------------- */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.15;
+}
+p { text-wrap: pretty; }
+.price, .num { font-variant-numeric: lining-nums tabular-nums; }
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* --- 5. Frame ------------------------------------------------------------ */
+.site-frame {
+  max-width: var(--maxw);
+  margin: var(--s-1) auto;
+  border: 1px solid var(--line);
+  position: relative;
+}
+
+/* --- 6. Ornaments -------------------------------------------------------- */
+.ornament { color: var(--gold); margin-inline: auto; opacity: .9; }
+.ornament--sm { width: 44px; }
+.rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  color: var(--gold);
+}
+.rule::before, .rule::after {
+  content: "";
+  height: 1px;
+  width: 56px;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+
+/* Engraved corner marks on panels. */
+.corners { position: relative; }
+.corners::before, .corners::after {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1px solid var(--gold-soft);
+  opacity: .8;
+  pointer-events: none;
+}
+.corners::before { top: 7px;    left: 7px;  border-right: 0; border-bottom: 0; }
+.corners::after  { bottom: 7px; right: 7px; border-left: 0;  border-top: 0; }
+
+/* --- 7. Masthead --------------------------------------------------------- */
+.masthead {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5) 0;
+}
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--s-4), 4vw, var(--s-7));
+  padding-top: var(--s-6);
+}
+.nav-right { justify-content: flex-end; }
+
+.nav-link {
+  position: relative;
+  font-size: 12px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  padding-bottom: var(--s-2);
+  transition: color var(--dur) var(--ease);
+  white-space: nowrap;
+}
+.nav-link:hover { color: var(--gold); }
+/* Hairline grows from the centre on hover; the active item keeps it. */
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: 0; height: 1px;
+  background: var(--gold);
+  transform: translateX(-50%);
+  transition: width var(--dur) var(--ease);
+}
+.nav-link:hover::after { width: 100%; }
+.nav-link.is-active { color: var(--ink); }
+.nav-link.is-active::after { width: 28px; }
+
+/* The three right-hand links also live in .nav-left so the mobile panel is one
+   list. They stay hidden until the nav collapses. */
+.nav-left .nav-link[data-secondary] { display: none; }
+
+.cart-link { display: inline-flex; align-items: center; gap: 6px; }
+.cart-link svg { width: 17px; height: 17px; }
+.cart-count { font-variant-numeric: lining-nums tabular-nums; }
+
+/* --- 8. Crest ------------------------------------------------------------ */
+/* The crest is the real logo (a raster inside #i-crest), so `color` no longer
+   tints it — the gold is the brand's own. */
+.crest { width: 92px; justify-self: center; }
+/* The mark carries a crown and a cut diamond; below ~28px of art they mush
+   together, so the footer copy is a little larger than a plain monogram needed. */
+.crest--sm { width: 34px; }
+
+/* --- 9. Wordmark --------------------------------------------------------- */
+.wordmark { text-align: center; padding: var(--s-2) var(--s-4) var(--s-5); }
+.wordmark-over {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 28px);
+  font-weight: 400;
+  letter-spacing: .30em;
+  text-indent: .30em; /* optical: cancel trailing tracking so it centres true */
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.wordmark-main {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 6.4vw, 62px);
+  font-weight: 500;
+  letter-spacing: .06em;
+  text-indent: .06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1;
+  margin-top: 2px;
+}
+.wordmark-est {
+  font-size: 12px;
+  letter-spacing: .28em;
+  text-indent: .28em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: var(--s-2);
+}
+.wordmark .ornament { margin-top: var(--s-3); }
+
+/* --- 10. Hero ------------------------------------------------------------ */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: var(--s-6);
+  padding: 0 var(--s-6) var(--s-8);
+  overflow: hidden; /* clips the monogram bleed */
+}
+/* The engraving ships as ink-on-transparency — its cream stock is keyed out into
+   the alpha channel — so the paper shows through as the plate's own and no blend
+   mode is needed. Do not add mix-blend-mode here: .rise animates this figure, an
+   animated element forms a stacking context, and the image would then blend
+   against nothing and render as a white box. */
+.hero-figure { justify-self: center; max-width: 420px; }
+
+.hero-copy { position: relative; z-index: 1; text-align: center; max-width: 420px; justify-self: center; }
+.hero-tagline {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 1.5vw, 18px);
+  font-style: italic;
+  color: var(--ink);
+}
+.hero-copy .rule { margin: var(--s-4) 0; }
+.hero-lede { font-size: 15px; line-height: 1.75; color: var(--ink-body); }
+.hero-copy .btn { margin-top: var(--s-5); }
+
+/* THE SIGNATURE: oversized A, bleeding off the right edge. */
+.hero-monogram {
+  position: absolute;
+  top: 50%; right: -4%;
+  transform: translateY(-50%);
+  width: min(340px, 30vw);
+  color: var(--ink);
+  opacity: .05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --- 11. Buttons --------------------------------------------------------- */
+.btn {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 15px var(--s-5);
+  transition: background-color var(--dur) var(--ease),
+              color var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+
+.btn--solid {
+  background: var(--bark);
+  color: var(--paper);
+  /* The inset rule is the detail that sells it — a second border inside the button. */
+  box-shadow: inset 0 0 0 1px var(--bark), inset 0 0 0 5px var(--bark), inset 0 0 0 6px var(--bark-lift);
+}
+.btn--solid:hover { background: #4A371F; }
+
+.btn--ghost { color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.btn--ghost:hover { background: var(--paper-warm); color: var(--gold); }
+
+.btn[disabled], .btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+
+.link-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+}
+/* height is NOT optional: these sprite <svg>s carry no viewBox, so with only a
+   width they fall back to the CSS default height of 150px and blow the row out. */
+.link-more svg { width: 8px; height: 12px; transition: transform var(--dur) var(--ease); }
+.link-more:hover { color: var(--gold); }
+.link-more:hover svg { transform: translateX(3px); }
+/* Journal posts are not written yet: the link announces itself as disabled, so
+   it must also look and behave disabled rather than silently doing nothing. */
+.link-more[aria-disabled="true"] { color: var(--ink-soft); opacity: .5; pointer-events: none; }
+.link-more[aria-disabled="true"]:hover svg { transform: none; }
+
+/* --- 12. Panels ---------------------------------------------------------- */
+.panels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+  background: var(--paper-warm);
+}
+.panel {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-4);
+  border-left: 1px solid var(--line);
+}
+.panel:first-child { border-left: 0; }
+.panel-figure { width: 150px; }
+.panel-figure img { aspect-ratio: 150 / 215; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }
+.panel-body { text-align: center; }
+.panel-title {
+  font-size: 13px;
+  letter-spacing: .2em;
+  text-indent: .2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: var(--s-2) 0 var(--s-3);
+}
+.panel-text { font-size: 11px; line-height: 1.7; color: var(--ink-body); margin-bottom: var(--s-4); }
+
+/* --- 13. Page shell (inner pages) --------------------------------------- */
+.page-head { text-align: center; padding: var(--s-4) var(--s-5) var(--s-6); }
+.page-head h1 {
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: .06em;
+  text-indent: .06em;
+  text-transform: uppercase;
+}
+.page-head .rule { margin: var(--s-3) 0; }
+.page-head p { max-width: 56ch; margin-inline: auto; font-size: 15px; color: var(--ink-body); }
+/* Without this a .btn closing a .page-head sits flush against the copy above it. */
+.page-head .btn { margin-top: var(--s-5); }
+.page-body { padding: 0 var(--s-6) var(--s-8); }
+.prose { max-width: 66ch; margin-inline: auto; }
+.prose p + p { margin-top: var(--s-3); }
+.prose h2 {
+  font-size: 22px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin: var(--s-6) 0 var(--s-3);
+}
+
+/* --- 14. Filters --------------------------------------------------------- */
+.filters { display: flex; justify-content: center; gap: var(--s-4); margin-bottom: var(--s-6); }
+.filter {
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid transparent;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.filter:hover { color: var(--ink); }
+.filter.is-active { color: var(--ink); border-bottom-color: var(--gold); }
+
+/* --- 15. Product grid ---------------------------------------------------- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s-6) var(--s-5);
+}
+.product-card { position: relative; text-align: center; text-decoration: none; display: block; }
+.product-card-media {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-warm);
+  box-shadow: 0 0 0 1px var(--line);
+  aspect-ratio: 1;
+}
+/* Product photography is never blended or filtered — a customer must see the
+   true colour of the metal and stone they are paying for. */
+.product-card-media img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform 420ms var(--ease);
+}
+.product-card:hover .product-card-media img { transform: scale(1.04); }
+.product-card h3 {
+  font-size: 15px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-top: var(--s-3);
+}
+.product-card .price { font-size: 14px; color: var(--ink-soft); margin-top: var(--s-1); }
+.product-card .badge {
+  position: absolute;
+  top: var(--s-2); left: var(--s-2);
+  z-index: 1;
+  background: var(--bark);
+  color: var(--paper);
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+}
+.product-card.is-out .product-card-media img { opacity: .55; }
+
+/* --- 16. PDP ------------------------------------------------------------- */
+.pdp { display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--s-8); align-items: start; }
+.pdp-media { box-shadow: 0 0 0 1px var(--line); background: var(--paper-warm); }
+.pdp-media img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+.pdp-thumbs { display: flex; gap: var(--s-2); margin-top: var(--s-2); }
+.pdp-thumb { width: 72px; aspect-ratio: 1; box-shadow: 0 0 0 1px var(--line); background: var(--paper-warm); }
+.pdp-thumb.is-active { box-shadow: 0 0 0 1px var(--gold); }
+.pdp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.pdp-info h1 { font-size: clamp(28px, 3.4vw, 40px); letter-spacing: .04em; text-transform: uppercase; }
+.pdp-info .price { font-size: 20px; color: var(--ink); margin-top: var(--s-3); }
+.pdp-info .rule { justify-content: flex-start; margin: var(--s-4) 0; }
+.pdp-info .rule::before { display: none; }
+/* .ornament centres itself with margin-inline:auto, which in this left-aligned
+   flex rule pushes the ornament away and strands the trailing hairline. */
+.pdp-info .rule .ornament { margin-inline: 0; }
+.pdp-desc { font-size: 15px; line-height: 1.8; }
+.spec-list { margin-top: var(--s-4); border-top: 1px solid var(--line); }
+.spec-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.spec-list dt { color: var(--ink-soft); letter-spacing: .1em; text-transform: uppercase; font-size: 11px; }
+.spec-list dd { color: var(--ink); text-align: right; }
+
+.qty { display: inline-flex; align-items: center; box-shadow: inset 0 0 0 1px var(--line); }
+.qty button { width: 38px; height: 42px; color: var(--ink); font-size: 16px; }
+.qty button:hover { color: var(--gold); }
+.qty input {
+  width: 46px; height: 42px;
+  text-align: center;
+  background: none;
+  border: 0;
+  border-inline: 1px solid var(--line);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.pdp-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); align-items: center; }
+
+/* --- 17. Cart ------------------------------------------------------------ */
+.cart-table { width: 100%; }
+.cart-row {
+  display: grid;
+  grid-template-columns: 96px 1fr auto auto auto;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+.cart-row img { width: 96px; aspect-ratio: 1; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }
+.cart-row h3 { font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+/* The product name is a link; without this it is the only underlined link on the site. */
+.cart-row h3 a { text-decoration: none; }
+.cart-row h3 a:hover { color: var(--gold); }
+.cart-remove { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.cart-remove:hover { color: #8C2F1E; }
+.cart-summary {
+  margin-top: var(--s-5);
+  margin-left: auto;
+  max-width: 380px;
+  padding: var(--s-4);
+  background: var(--paper-warm);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.cart-summary div { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.cart-summary .total { border-top: 1px solid var(--line); margin-top: var(--s-2); padding-top: var(--s-3); font-size: 18px; color: var(--ink); }
+.cart-summary .btn { width: 100%; text-align: center; margin-top: var(--s-4); }
+
+.empty { text-align: center; padding: var(--s-8) var(--s-4); }
+.empty .ornament { margin-bottom: var(--s-4); }
+.empty p { color: var(--ink-soft); margin-bottom: var(--s-5); }
+
+/* --- 18. Forms ----------------------------------------------------------- */
+.field { display: block; margin-bottom: var(--s-4); }
+.field > span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: var(--s-2);
+}
+.input {
+  width: 100%;
+  padding: 12px var(--s-3);
+  background: rgba(255,255,255,.28);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  transition: border-color var(--dur) var(--ease);
+}
+.input:hover { border-color: var(--gold-soft); }
+/* Deliberately no `outline: none` here. This selector is (0,2,0) and would
+   outrank the (0,1,0) :where(...):focus-visible ring below, leaving every field
+   on the site with no visible keyboard focus. Only the border is restyled;
+   the ring is left to :focus-visible, which modern browsers reserve for
+   keyboard focus anyway. */
+.input:focus { border-color: var(--gold); }
+textarea.input { min-height: 132px; resize: vertical; }
+.field-error { color: #8C2F1E; font-size: 12px; margin-top: 6px; }
+.input[aria-invalid="true"] { border-color: #8C2F1E; }
+
+.notice {
+  padding: var(--s-3) var(--s-4);
+  background: var(--paper-warm);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 14px;
+}
+
+/* Toast — announced politely, never traps focus. */
+.toast {
+  position: fixed;
+  left: 50%; bottom: var(--s-5);
+  transform: translate(-50%, 12px);
+  z-index: 10000;
+  background: var(--bark);
+  color: var(--paper);
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 12px var(--s-4);
+  box-shadow: inset 0 0 0 4px var(--bark), inset 0 0 0 5px var(--bark-lift);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.toast.is-open { opacity: 1; transform: translate(-50%, 0); }
+
+/* --- 18b. Split (about, contact) ----------------------------------------- */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-8); align-items: start; }
+.split--wide { grid-template-columns: 1.15fr .85fr; }
+.split figure img { width: 100%; box-shadow: 0 0 0 1px var(--line); }
+.split figcaption {
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: var(--s-2);
+  text-align: center;
+}
+
+/* --- 18c. Gallery (lookbook) --------------------------------------------- */
+/* Columns, not grid — the plates are mixed portrait/landscape and should stack
+   like a scrapbook rather than march in even rows. */
+.gallery { columns: 3; column-gap: var(--s-4); }
+.gallery-item { break-inside: avoid; margin: 0 0 var(--s-4); }
+.gallery-item img { width: 100%; box-shadow: 0 0 0 1px var(--line); }
+.gallery-item figcaption {
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: var(--s-2);
+  text-align: center;
+}
+
+/* --- 18d. Journal -------------------------------------------------------- */
+.journal-list { max-width: 68ch; margin-inline: auto; }
+.journal-entry { padding: var(--s-5) 0; border-bottom: 1px solid var(--line); text-align: center; }
+.journal-entry:first-child { padding-top: 0; }
+.journal-entry:last-child { border-bottom: 0; }
+.journal-entry time { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
+.journal-entry h2 { font-size: 26px; letter-spacing: .06em; margin: var(--s-2) 0 var(--s-3); }
+.journal-entry p { font-size: 15px; line-height: 1.75; }
+
+/* --- 18e. Info list (contact) -------------------------------------------- */
+.info-list { border-top: 1px solid var(--line); }
+.info-list > div { padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+.info-list dt { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 4px; }
+.info-list dd { font-size: 15px; color: var(--ink); }
+.info-list a { text-decoration: none; border-bottom: 1px solid var(--gold-soft); }
+.info-list a:hover { color: var(--gold); }
+
+.btn--wa { display: inline-flex; align-items: center; gap: 8px; }
+.btn--wa svg { width: 15px; height: 15px; }
+
+/* --- 19. Footer ---------------------------------------------------------- */
+.footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  background: var(--bark);
+  color: var(--paper-deep);
+  font-size: 11px;
+}
+.footer a { color: var(--paper-deep); text-decoration: none; transition: color var(--dur) var(--ease); }
+.footer a:hover { color: var(--paper); }
+.footer-mid { display: flex; align-items: center; gap: var(--s-3); justify-self: center; white-space: nowrap; }
+.footer-mid .crest { color: var(--paper-deep); }
+.footer-social { display: flex; align-items: center; gap: var(--s-3); justify-self: end; }
+.footer-social li:not(:last-child)::after { content: "|"; margin-left: var(--s-3); opacity: .4; }
+.footer-social li { display: flex; align-items: center; }
+
+/* --- 20. Motion ---------------------------------------------------------- */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 420ms var(--ease) both; }
+.rise-1 { animation-delay: 60ms; }
+.rise-2 { animation-delay: 120ms; }
+.rise-3 { animation-delay: 180ms; }
+.rise-4 { animation-delay: 240ms; }
+
+/* --- 21. Accessibility --------------------------------------------------- */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.skip {
+  position: absolute;
+  left: 50%; top: 0;
+  transform: translate(-50%, -120%);
+  z-index: 10001;
+  background: var(--bark);
+  color: var(--paper);
+  padding: 10px var(--s-4);
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  transition: transform var(--dur) var(--ease);
+}
+.skip:focus { transform: translate(-50%, 0); }
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- 22. Nav toggle (mobile only) ---------------------------------------- */
+.nav-toggle { display: none; }
+
+/* --- 23. Responsive ------------------------------------------------------ */
+@media (max-width: 1080px) {
+  .hero { gap: var(--s-5); padding: 0 var(--s-5) var(--s-7); }
+  .panel { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .panel-figure { width: 168px; }
+  .split { gap: var(--s-6); }
+  .gallery { columns: 2; }
+}
+
+@media (max-width: 860px) {
+  .masthead {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: var(--s-3) var(--s-4);
+  }
+  .crest { width: 54px; }
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px; height: 40px;
+    color: var(--ink);
+  }
+  /* Same 150px trap as .link-more — and here it silently stretches the tap
+     target ~55px above and below the visible button. */
+  .nav-toggle svg { width: 20px; height: 20px; }
+
+  /* Nav collapses into one disclosure panel; .nav-right holds the cart only. */
+  .nav-left {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    z-index: 50;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    background: var(--paper);
+    border-block: 1px solid var(--line);
+    display: none;
+  }
+  .nav-left.is-open { display: flex; }
+  .nav-left .nav-link[data-secondary] { display: block; }
+  .nav-left .nav-link {
+    padding: var(--s-3) var(--s-4);
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+  }
+  .nav-left .nav-link:last-child { border-bottom: 0; }
+  .nav-left .nav-link::after { display: none; }
+  .nav-right { padding-top: 0; gap: var(--s-3); }
+  .nav-right .nav-link:not(.cart-link) { display: none; }
+
+  .hero { grid-template-columns: 1fr; padding-bottom: var(--s-6); }
+  .hero-figure { max-width: 300px; }
+  .hero-monogram { width: 240px; opacity: .04; }
+  .panels { grid-template-columns: 1fr; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); }
+  .panel:first-child { border-top: 0; }
+  .pdp { grid-template-columns: 1fr; gap: var(--s-5); }
+  .page-body { padding: 0 var(--s-4) var(--s-7); }
+  .split, .split--wide { grid-template-columns: 1fr; gap: var(--s-5); }
+  .gallery { columns: 1; }
+
+  .footer { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: var(--s-3); }
+  .footer-mid, .footer-social { justify-self: center; }
+
+  .cart-row { grid-template-columns: 72px 1fr auto; row-gap: var(--s-2); }
+  .cart-row img { width: 72px; }
+  .cart-summary { max-width: none; }
+}
+
+@media (max-width: 520px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: var(--s-4) var(--s-3); }
+  .product-card h3 { font-size: 13px; }
+  .wordmark { padding-bottom: var(--s-4); }
+  .footer-mid { flex-wrap: wrap; justify-content: center; white-space: normal; }
+}
+
+/* --- 24. Reduced motion -------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .rise { animation: none; }
+  .product-card:hover .product-card-media img { transform: none; }
+}
+
+/* --- 25. Print ----------------------------------------------------------- */
+@media print {
+  body::before, .hero-monogram, .nav-toggle { display: none; }
+  body { background: #fff; color: #000; }
+  .site-frame { border: 0; }
+}

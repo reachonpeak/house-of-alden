@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Vercel's local link (contains your project/org ids — machine-specific)
+.vercel
+
+# Claude Code local tooling, not part of the site
+.claude/
