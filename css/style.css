@@ -429,7 +429,10 @@ p { text-wrap: pretty; }
 .pdp-media { box-shadow: 0 0 0 1px var(--line); background: var(--paper-warm); }
 .pdp-media img { width: 100%; aspect-ratio: 1; object-fit: cover; }
 .pdp-thumbs { display: flex; gap: var(--s-2); margin-top: var(--s-2); }
-.pdp-thumb { width: 72px; aspect-ratio: 1; box-shadow: 0 0 0 1px var(--line); background: var(--paper-warm); }
+/* padding: 0 matters — thumbs are <button>s, and the reset zeroes a button's
+   border and background but not its browser-default padding, which would seat
+   each plate 60×70 inside the 72px frame with cream bars down both sides. */
+.pdp-thumb { width: 72px; aspect-ratio: 1; padding: 0; box-shadow: 0 0 0 1px var(--line); background: var(--paper-warm); }
 .pdp-thumb.is-active { box-shadow: 0 0 0 1px var(--gold); }
 .pdp-thumb img { width: 100%; height: 100%; object-fit: cover; }
 

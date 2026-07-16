@@ -150,12 +150,6 @@
   function thumbs(p, shots, main) {
     const strip = el("div", "pdp-thumbs");
 
-    /* KNOWN GAP, needs one line in css/style.css, which this file may not edit:
-       .pdp-thumb has never hosted a <button> before, and the reset zeroes a
-       button's border and background but not its padding. The browser's own
-       1px 6px is left behind, so each 1000×1000 plate is seated 60×70 inside a
-       72×72 frame — cream bars down both sides. `.pdp-thumb { padding: 0 }`
-       fixes it. Nothing ships with a second plate yet, so nothing shows it. */
     const buttons = shots.map((src, i) => {
       const b = el("button", `pdp-thumb${i === 0 ? " is-active" : ""}`);
       b.type = "button";
@@ -401,7 +395,10 @@
         image: SITE + String(p.image).replace(/^\/+/, ""),
         description: p.description || p.blurb || "",
         sku: p.id,
-        brand: { "@type": "Brand", name: "House of Alden" },
+        /* Read from config.js, not spelled out again. config.js is billed as the
+           only file the owner edits; a name hardcoded here would keep telling
+           crawlers the old one long after BUSINESS.name had changed. */
+        brand: { "@type": "Brand", name: (BUSINESS && BUSINESS.name) || "House of Alden" },
         offers: {
           "@type": "Offer",
           url,
