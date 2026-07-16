@@ -10,6 +10,13 @@
 (() => {
   const MIN_QTY = 1;
   const MAX_QTY = 99; // matches the ceiling Cart enforces internally
+  const RELATED_MAX = 3; // .related is a three-column grid
+  const RELATED_MIN = 2; // fewer than this and the row is not worth showing
+
+  /* Where the shop actually lives. Only structured data needs it: a crawler is
+     handed absolute URLs, while every link on the page stays relative so the
+     site still works from a file:// folder or a preview deployment. */
+  const SITE = "https://house-of-alden.vercel.app/";
 
   const mount = document.getElementById("pdp");
   if (!mount) return;
@@ -109,18 +116,111 @@
     return { wrap, input };
   }
 
+  /* --- Photographs -------------------------------------------------------- */
+
+  /* A piece may carry an optional `images: ["a.webp", "b.webp"]`. `image` is
+     the plate the grid, the cart and the crawler all use, so it leads here too —
+     a customer who clicks a photograph must land on that photograph — and
+     `images` supplies whatever follows it. Repeats are dropped, so naming the
+     lead plate in both keys does not show it twice.
+
+     Nothing in config.js carries `images` today, which is the point: one plate
+     returns one plate, and the page below is the page that was already here. */
+  function shotsOf(p) {
+    const extra = Array.isArray(p.images)
+      ? p.images.filter((s) => typeof s === "string" && s.trim() !== "")
+      : [];
+    const shots = p.image ? [p.image] : [];
+    extra.forEach((s) => {
+      if (!shots.includes(s)) shots.push(s);
+    });
+    return shots;
+  }
+
+  /* config.js carries one alt, and it was written for one photograph. Nothing
+     is known about a second plate except that it shows the same piece from
+     somewhere else, so that is all the alt for it claims. Inventing a
+     description of a photograph nobody here has seen is how alt text starts
+     lying to the people who depend on it. */
+  function altFor(p, i, total) {
+    const first = p.alt || `${p.name}, photographed against a plain ground.`;
+    return i === 0 ? first : `${p.name}, further view — image ${i + 1} of ${total}.`;
+  }
+
+  function thumbs(p, shots, main) {
+    const strip = el("div", "pdp-thumbs");
+
+    /* KNOWN GAP, needs one line in css/style.css, which this file may not edit:
+       .pdp-thumb has never hosted a <button> before, and the reset zeroes a
+       button's border and background but not its padding. The browser's own
+       1px 6px is left behind, so each 1000×1000 plate is seated 60×70 inside a
+       72×72 frame — cream bars down both sides. `.pdp-thumb { padding: 0 }`
+       fixes it. Nothing ships with a second plate yet, so nothing shows it. */
+    const buttons = shots.map((src, i) => {
+      const b = el("button", `pdp-thumb${i === 0 ? " is-active" : ""}`);
+      b.type = "button";
+      /* The button says what it does, so the thumbnail inside it is decorative
+         and takes an empty alt: the standard treatment for an image that is the
+         whole of a labelled control. Two names for one button ("Gold-cased
+         wristwatch… Show image 2 of 3") would only be read out twice. */
+      b.setAttribute("aria-label", `Show image ${i + 1} of ${shots.length}`);
+      b.setAttribute("aria-pressed", String(i === 0));
+
+      const img = el("img");
+      img.src = src;
+      img.alt = "";
+      img.width = 1000;
+      img.height = 1000;
+      /* Lazy like every other scripted image on the site: the strip is built
+         long after the preload scanner has been and gone, and a lazy image that
+         lands inside the viewport is fetched at once regardless. */
+      img.setAttribute("loading", "lazy");
+
+      b.append(img);
+      return b;
+    });
+
+    const show = (i) => {
+      main.src = shots[i];
+      main.alt = altFor(p, i, shots.length);
+      buttons.forEach((b, j) => {
+        b.classList.toggle("is-active", j === i);
+        b.setAttribute("aria-pressed", String(j === i));
+      });
+    };
+
+    /* Real buttons, so Enter and Space arrive as clicks and the focus ring is
+       the site's own. Nothing else to wire. */
+    buttons.forEach((b, i) => b.addEventListener("click", () => show(i)));
+
+    strip.append(...buttons);
+    return strip;
+  }
+
   /* --- Pieces of the page ------------------------------------------------- */
 
   function media(p) {
+    const shots = shotsOf(p);
+
     const fig = el("figure", "pdp-media");
     const img = el("img");
-    img.src = p.image;
-    img.alt = p.alt || `${p.name}, photographed against a plain ground.`;
+    img.src = shots[0] || p.image;
+    img.alt = altFor(p, 0, shots.length);
     img.width = 1000;
     img.height = 1000;
     img.setAttribute("fetchpriority", "high"); // above the fold — never lazy
     fig.append(img);
-    return fig;
+
+    /* One plate, one photograph: no strip, and none of its machinery built. */
+    if (shots.length < 2) return fig;
+
+    /* .pdp is a two-column grid and .pdp-thumbs belongs under the photograph,
+       not beside the copy — as a grid item of its own it would take the second
+       column. .pdp-media carries the frame and the strip sits below it, so the
+       two need one plain box to share. */
+    const box = el("div");
+    box.append(fig, thumbs(p, shots, img));
+    return box;
   }
 
   function specList(p) {
@@ -219,15 +319,146 @@
     return box;
   }
 
+  /* --- Related pieces ----------------------------------------------------- */
+
+  /* The same card the collection grid draws — same classes, same order, same
+     Sold Out precedence — so a piece looks identical wherever it is met. */
+  function card(p) {
+    const out = !p.stock;
+
+    const a = el("a", `product-card${out ? " is-out" : ""}`);
+    a.href = `product.html?id=${encodeURIComponent(p.id)}`;
+
+    const box = el("div", "product-card-media");
+    /* Sold Out outranks whatever badge config.js asked for — a customer needs
+       to know it is gone before they need to know it is new. */
+    const badge = out ? "Sold Out" : p.badge || "";
+    if (badge) box.append(el("span", "badge", badge));
+
+    const img = el("img");
+    img.src = p.image;
+    img.alt = p.alt || `${p.name}, photographed against a plain ground.`;
+    img.width = 1000;
+    img.height = 1000;
+    img.setAttribute("loading", "lazy"); // always below the fold, under the PDP
+    box.append(img);
+
+    a.append(box, el("h3", null, p.name), el("p", "price", Money.format(p.price)));
+    return a;
+  }
+
+  /* Deterministic, and in the shop's own order: the owner should be able to
+     read config.js and know what sits under a piece, and a stable row is
+     kinder to a cache than a shuffle.
+
+     The two rules meet exactly once — when a category has fewer than three
+     in-stock pieces left besides this one. Availability wins there. "Never
+     offer a sold-out piece while an in-stock one is going spare" is the
+     stronger promise to a customer than "keep to the category", so the row
+     tops up from the other side of the catalogue and only reaches for a
+     sold-out piece when there is genuinely nothing else to show. */
+  function relatedTo(p) {
+    const pool = catalogue.filter((x) => x && x.id && x.id !== p.id && x.image);
+    const tier = (inStock) => [
+      ...pool.filter((x) => !!x.stock === inStock && x.category === p.category),
+      ...pool.filter((x) => !!x.stock === inStock && x.category !== p.category),
+    ];
+    return [...tier(true), ...tier(false)].slice(0, RELATED_MAX);
+  }
+
+  function related(p) {
+    const picks = relatedTo(p);
+    /* One card alone in a three-column grid reads as a mistake rather than an
+       invitation. Better to end the page on the piece the customer came for. */
+    if (picks.length < RELATED_MIN) return null;
+
+    const section = el("section", "related");
+    section.dataset.pdpExtra = "";
+    section.setAttribute("aria-labelledby", "related-heading");
+
+    const heading = el("h2", null, "You may also like");
+    heading.id = "related-heading";
+
+    const grid = el("div", "product-grid");
+    picks.forEach((x) => grid.append(card(x)));
+
+    section.append(heading, grid);
+    return section;
+  }
+
+  /* --- Structured data ---------------------------------------------------- */
+
+  /* One Product block, built from config.js and nothing else. No rating and no
+     review count: there are no reviews, and markup that claims otherwise is
+     both a lie and the sort of thing Google withdraws rich results over. */
+  function jsonLd(p) {
+    try {
+      const url = `${SITE}product.html?id=${encodeURIComponent(p.id)}`;
+      const data = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: p.name,
+        image: SITE + String(p.image).replace(/^\/+/, ""),
+        description: p.description || p.blurb || "",
+        sku: p.id,
+        brand: { "@type": "Brand", name: "House of Alden" },
+        offers: {
+          "@type": "Offer",
+          url,
+          priceCurrency: (BUSINESS.currency && BUSINESS.currency.code) || "INR",
+          /* A bare number, deliberately. This field is read by a crawler and
+             not by a customer: priceCurrency carries the currency, and
+             Money.format's "₹8,900" would be invalid here. */
+          price: p.price,
+          availability: p.stock
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+        },
+      };
+
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.dataset.pdpExtra = "";
+      /* "<" only ever appears inside a string in JSON, so escaping every one of
+         them cannot break the data — and it keeps a stray "</script>" in a
+         description from closing the block early if this page is ever saved or
+         serialised. */
+      script.textContent = JSON.stringify(data).replace(/</g, "\\u003c");
+      document.head.append(script);
+    } catch (err) {
+      /* Structured data is a courtesy to a crawler. It must never cost a
+         customer the page. */
+      console.warn("House of Alden — could not write the product structured data.", err);
+    }
+  }
+
   /* --- Render ------------------------------------------------------------- */
 
+  /* Everything renderProduct hangs outside #pdp — the related row and the
+     structured data — carries this mark, so a fall back to the empty state can
+     take it all down again in one sweep. */
+  function clearExtras() {
+    document.querySelectorAll("[data-pdp-extra]").forEach((node) => node.remove());
+  }
+
   function renderProduct(p) {
+    clearExtras();
     document.title = `${p.name} — House of Alden`;
     mount.className = "pdp";
     mount.replaceChildren(media(p), info(p));
+
+    const also = related(p);
+    if (also) mount.after(also);
+
+    jsonLd(p);
   }
 
   function renderEmpty() {
+    /* renderProduct may have got half-way before it threw. A dead end that still
+       carries the last product's suggestions and structured data is worse than
+       no dead end at all. */
+    clearExtras();
+
     document.title = "Piece not found — House of Alden";
     mount.className = "empty";
 

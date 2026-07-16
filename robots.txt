@@ -1,0 +1,13 @@
+# House of Alden — robots.txt
+#
+# The shop is public. Every page here is meant to be found, so nothing is
+# disallowed. The map is sitemap.xml, sitting next to this file.
+#
+# The Sitemap line needs the full https:// address rather than a path, so it is
+# one of the places ./set-domain.sh rewrites. Run that once after your own
+# domain is live and this file follows the pages onto it.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://house-of-alden.vercel.app/sitemap.xml

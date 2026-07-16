@@ -3,13 +3,17 @@
 #
 #   ./set-domain.sh houseofalden.in
 #
-# It does two things to all eight pages:
-#   1. adds the "canonical" tag  — tells Google this is the real address of the page,
-#      so it doesn't treat copies (www vs non-www, netlify.app vs your domain) as
-#      duplicates and split your search ranking between them.
-#   2. makes the share picture address absolute — WhatsApp and Facebook will not load
-#      a picture written as "images/og-card.jpg"; they need the full https:// address.
-#      Until you run this, links you share show your text but no picture.
+# It swaps your real web address into every place that needs the full https://…
+# form rather than a relative path:
+#   1. the "canonical" tag — tells Google this is the real address of the page, so it
+#      doesn't treat copies (www vs non-www, vercel.app vs your domain) as duplicates
+#      and split your search ranking between them.
+#   2. the share picture — WhatsApp and Facebook will not load a picture written as
+#      "images/og-card.jpg"; they need the full address. Until you run this, links you
+#      share show your text but no picture.
+#   3. sitemap.xml and robots.txt — the map you hand to Google.
+#   4. the JSON-LD blocks — the machine-readable shop/product data Google reads to
+#      show your prices in search results.
 #
 # Safe to run more than once. Run it again if you ever change domain.
 
@@ -27,23 +31,38 @@ BASE="https://${DOMAIN}"
 
 cd "$(dirname "$0")"
 
+# Every address currently baked into the site. Anything matching this gets swapped.
+OLD='https://[a-z0-9.-]*\.vercel\.app'
+
 for f in *.html; do
   page="$f"
   [ "$f" = "index.html" ] && page=""
-
-  # 1. canonical — replace an existing one, or add it after the <title>.
-  if grep -q 'rel="canonical"' "$f"; then
-    sed -i '' -E "s#<link rel=\"canonical\"[^>]*>#<link rel=\"canonical\" href=\"${BASE}/${page}\">#" "$f"
-  else
-    sed -i '' -E "s#(</title>)#\1\n<link rel=\"canonical\" href=\"${BASE}/${page}\">#" "$f"
+  # 404.html is served for unknown paths and has no canonical address of its own.
+  if [ "$f" != "404.html" ]; then
+    if grep -q 'rel="canonical"' "$f"; then
+      sed -i '' -E "s#<link rel=\"canonical\"[^>]*>#<link rel=\"canonical\" href=\"${BASE}/${page}\">#" "$f"
+    else
+      sed -i '' -E "s#(</title>)#\1\n<link rel=\"canonical\" href=\"${BASE}/${page}\">#" "$f"
+    fi
   fi
 
-  # 2. share picture -> absolute
   sed -i '' -E "s#(og:image\" content=\")[^\"]*(\")#\1${BASE}/images/og-card.jpg\2#" "$f"
+  # JSON-LD and anything else still pointing at the old address.
+  sed -i '' -E "s#${OLD}#${BASE}#g" "$f"
 
-  echo "  ${f}  ->  ${BASE}/${page}"
+  echo "  ${f}"
+done
+
+# The map handed to search engines, and the JS that builds product data.
+for f in sitemap.xml robots.txt js/product.js js/home.js; do
+  [ -f "$f" ] || continue
+  sed -i '' -E "s#${OLD}#${BASE}#g" "$f"
+  echo "  ${f}"
 done
 
 echo
-echo "Done. Upload the folder again so the changes go live."
-echo "Check the result at: https://developers.facebook.com/tools/debug/  (paste ${BASE})"
+echo "Done. Now push it live:"
+echo "    git add -A && git commit -m 'Point the site at ${DOMAIN}' && git push"
+echo
+echo "Then check the share preview at https://developers.facebook.com/tools/debug/"
+echo "(paste ${BASE}) and submit ${BASE}/sitemap.xml in Google Search Console."

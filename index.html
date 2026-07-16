@@ -19,6 +19,29 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
 <link rel="stylesheet" href="css/style.css">
+
+<!-- The shop's business card for search engines. Every field here is on the Udyam
+     certificate or in js/config.js — nothing is asserted that we cannot stand
+     behind. No ratings, no opening hours, no price range. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "House of Alden",
+  "url": "https://house-of-alden.vercel.app",
+  "image": "https://house-of-alden.vercel.app/images/og-card.jpg",
+  "email": "mannkawalpreet3@gmail.com",
+  "telephone": "+917087511282",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "1560, Ward No. 5, Near Dispensary",
+    "addressLocality": "Maur Mandi",
+    "addressRegion": "Punjab",
+    "postalCode": "151509",
+    "addressCountry": "IN"
+  }
+}
+</script>
 </head>
 <body>
 
@@ -154,6 +177,48 @@
       <svg class="hero-monogram" viewBox="0 0 92 118" aria-hidden="true"><use href="#i-crest"/></svg>
     </section>
 
+    <!-- ===== Shelves =====
+         One teaser row per category, filled by js/home.js from PRODUCTS.
+         The grids are empty here on purpose: config.js is the only place stock is
+         edited, so the markup must never hold a second copy of it. A shelf whose
+         category is empty is hidden by the script rather than left as a bare head.
+         Both shelves ride the last beat (rise-4) with the panels — the stagger
+         only exists for what is above the fold, and none of this is. -->
+    <section class="shelf rise rise-4" aria-labelledby="shelf-watches">
+      <div class="shelf-head">
+        <svg class="ornament ornament--sm" width="44" height="10" viewBox="0 0 44 10" aria-hidden="true"><use href="#i-orn-sm"/></svg>
+        <h2 id="shelf-watches">Watches</h2>
+        <p>Gold-tone and brushed steel, on leather and canvas.</p>
+        <!-- Deliberately empty, unlike every other .rule on the site, which frames
+             an ornament. .ornament carries margin-inline:auto, and inside a flex
+             .rule those auto margins eat the free space and fling the two hairlines
+             out to the container's edges — the same trap css/style.css already
+             patches for .pdp-info. That rule is capped at 420px so it goes
+             unnoticed; a .shelf-head is full width, so the hairlines would strand
+             ~500px from the mark. With no auto-margined child the hairlines centre
+             themselves, and the flourish above the heading stays the only mark. -->
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="product-grid" id="shelf-watches-grid"></div>
+      <div class="shelf-foot">
+        <a class="btn btn--ghost" href="collection.html?filter=watches">View all watches</a>
+      </div>
+    </section>
+
+    <section class="shelf rise rise-4" aria-labelledby="shelf-earrings">
+      <div class="shelf-head">
+        <svg class="ornament ornament--sm" width="44" height="10" viewBox="0 0 44 10" aria-hidden="true"><use href="#i-orn-sm"/></svg>
+        <h2 id="shelf-earrings">Earrings</h2>
+        <p>Gold-plated brass, set with pearl, garnet and fine scrollwork.</p>
+        <!-- Empty for the same reason as the watches rule above. -->
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="product-grid" id="shelf-earrings-grid"></div>
+      <div class="shelf-foot">
+        <a class="btn btn--ghost" href="collection.html?filter=earrings">View all earrings</a>
+      </div>
+    </section>
+
     <!-- ===== Panels ===== -->
     <section class="panels rise rise-4" aria-label="Explore House of Alden">
 
@@ -226,5 +291,6 @@
 <script src="js/config.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/main.js"></script>
+<script src="js/home.js"></script>
 </body>
 </html>

@@ -408,6 +408,22 @@ p { text-wrap: pretty; }
 }
 .product-card.is-out .product-card-media img { opacity: .55; }
 
+/* --- 15b. Shelf (a category run on the home page) ------------------------ */
+.shelf { padding: var(--s-7) var(--s-6); border-top: 1px solid var(--line); }
+.shelf-head { text-align: center; margin-bottom: var(--s-6); }
+.shelf-head h2 {
+  font-size: clamp(22px, 2.6vw, 30px);
+  letter-spacing: .18em;
+  text-indent: .18em;   /* optical: cancel the trailing track so it centres true */
+  text-transform: uppercase;
+}
+.shelf-head p { font-size: 13px; color: var(--ink-soft); margin-top: var(--s-2); }
+.shelf-head .rule { margin-top: var(--s-3); }
+/* Fixed four across, not auto-fill: a shelf is a curated row, and auto-fill would
+   reflow it to five on a wide screen and strand a lone card on the next line. */
+.shelf .product-grid { grid-template-columns: repeat(4, 1fr); }
+.shelf-foot { text-align: center; margin-top: var(--s-6); }
+
 /* --- 16. PDP ------------------------------------------------------------- */
 .pdp { display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--s-8); align-items: start; }
 .pdp-media { box-shadow: 0 0 0 1px var(--line); background: var(--paper-warm); }
@@ -449,6 +465,18 @@ p { text-wrap: pretty; }
   font-variant-numeric: lining-nums tabular-nums;
 }
 .pdp-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); align-items: center; }
+
+/* --- 16b. Related pieces (below the PDP) --------------------------------- */
+.related { margin-top: var(--s-8); padding-top: var(--s-6); border-top: 1px solid var(--line); }
+.related h2 {
+  font-size: 18px;
+  letter-spacing: .18em;
+  text-indent: .18em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: var(--s-5);
+}
+.related .product-grid { grid-template-columns: repeat(3, 1fr); }
 
 /* --- 17. Cart ------------------------------------------------------------ */
 .cart-table { width: 100%; }
@@ -652,6 +680,8 @@ textarea.input { min-height: 132px; resize: vertical; }
   .panel-figure { width: 168px; }
   .split { gap: var(--s-6); }
   .gallery { columns: 2; }
+  .shelf { padding: var(--s-6) var(--s-5); }
+  .shelf .product-grid, .related .product-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 860px) {
@@ -718,6 +748,8 @@ textarea.input { min-height: 132px; resize: vertical; }
 
 @media (max-width: 520px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: var(--s-4) var(--s-3); }
+  .shelf { padding: var(--s-5) var(--s-4); }
+  .shelf .product-grid, .related .product-grid { grid-template-columns: repeat(2, 1fr); gap: var(--s-4) var(--s-3); }
   .product-card h3 { font-size: 13px; }
   .wordmark { padding-bottom: var(--s-4); }
   .footer-mid { flex-wrap: wrap; justify-content: center; white-space: normal; }

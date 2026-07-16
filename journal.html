@@ -141,7 +141,7 @@
           <time datetime="2026-07-12">12 July 2026</time>
           <h2>Why We Chose the Moon</h2>
           <p>A moonphase does nothing useful. It will not get you to a meeting on time. We put one on the Regent anyway, and this is our defence.</p>
-          <a class="link-more" href="#" aria-disabled="true">
+          <a class="link-more" href="journal-moon.html">
             Read more <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><use href="#i-chev"/></svg>
             <span class="visually-hidden">— Why We Chose the Moon</span>
           </a>
@@ -151,7 +151,7 @@
           <time datetime="2026-07-05">05 July 2026</time>
           <h2>On Leather That Darkens</h2>
           <p>We leave the edges of our straps undyed. They look unfinished on the first day. That is deliberate, and here is what happens by the hundredth.</p>
-          <a class="link-more" href="#" aria-disabled="true">
+          <a class="link-more" href="journal-leather.html">
             Read more <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><use href="#i-chev"/></svg>
             <span class="visually-hidden">— On Leather That Darkens</span>
           </a>
@@ -161,15 +161,11 @@
           <time datetime="2026-07-01">01 July 2026</time>
           <h2>A House in Maur Mandi</h2>
           <p>House of Alden began in a room above a dispensary in Maur Mandi, Bathinda, with two people and a drawer of old jewellery. It still does.</p>
-          <a class="link-more" href="#" aria-disabled="true">
+          <a class="link-more" href="journal-maur-mandi.html">
             Read more <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><use href="#i-chev"/></svg>
             <span class="visually-hidden">— A House in Maur Mandi</span>
           </a>
         </article>
-
-        <p class="notice">
-          The full entries are still being written. Each will appear here as it is finished.
-        </p>
 
       </div>
     </div>
@@ -204,10 +200,21 @@
      to show for it. Same contract as collection.js/product.js and PRODUCTS. */
   (() => {
     const list = document.querySelector(".journal-list");
-    const notice = list && list.querySelector(".notice");
     const template = list && list.querySelector(".journal-entry");
-    if (!list || !notice || !template) return;
+    if (!list || !template) return;
     if (typeof JOURNAL === "undefined" || !Array.isArray(JOURNAL) || !JOURNAL.length) return;
+
+    /* Title → post page. JOURNAL carries no link of its own, so the mapping lives
+       here, beside the pages it names. An entry added to config.js before its page
+       exists falls back to the disabled link below rather than to a broken href.
+       A Map, not an object literal: titles come from a hand-edited file, and a
+       title of "constructor" would find a function on Object.prototype and be
+       written into the href. */
+    const POSTS = new Map([
+      ["Why We Chose the Moon", "journal-moon.html"],
+      ["On Leather That Darkens", "journal-leather.html"],
+      ["A House in Maur Mandi", "journal-maur-mandi.html"],
+    ]);
 
     const MONTHS = ["january", "february", "march", "april", "may", "june",
                     "july", "august", "september", "october", "november", "december"];
@@ -235,22 +242,34 @@
       el.querySelector("h2").textContent = post.title || "";
       el.querySelector(":scope > p").textContent = post.excerpt || "";
       el.querySelector(".link-more .visually-hidden").textContent = `— ${post.title || ""}`;
+
+      /* Every clone carries the FIRST entry's href, so the link must be set from
+         the title on each one — otherwise all three would open the same post. */
+      const link = el.querySelector(".link-more");
+      const href = POSTS.get(post.title);
+      if (href) {
+        link.setAttribute("href", href);
+        link.removeAttribute("aria-disabled");
+      } else {
+        link.setAttribute("href", "#");
+        link.setAttribute("aria-disabled", "true");
+      }
       return el;
     });
 
     list.querySelectorAll(".journal-entry").forEach((el) => el.remove());
-    built.forEach((el) => list.insertBefore(el, notice));
+    built.forEach((el) => list.append(el));
   })();
 
-  /* The posts have no pages yet, so every "Read more" points at "#". Left alone
-     that would fling the reader to the top of the document — worse than nothing.
-     Swallow the click and say so instead. The .notice above carries the same
-     message for anyone reading with JS off. Bound after the re-render above so the
-     freshly cloned entries are covered. */
+  /* The three entries above are written and linked. A fourth added to config.js
+     would have no page yet: its link is left at "#" and marked disabled, which
+     would otherwise fling the reader to the top of the document. Swallow that
+     click and say so. Bound after the re-render above so the freshly cloned
+     entries are covered. */
   document.querySelectorAll('.journal-list .link-more[aria-disabled="true"]').forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
-      Toast.show("Full entries are coming soon.");
+      Toast.show("That entry is still being written.");
     });
   });
 </script>
