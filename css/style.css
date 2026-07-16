@@ -419,6 +419,11 @@ p { text-wrap: pretty; }
 }
 .shelf-head p { font-size: 13px; color: var(--ink-soft); margin-top: var(--s-2); }
 .shelf-head .rule { margin-top: var(--s-3); }
+/* .ornament centres itself with margin-inline:auto; inside a full-width flex
+   .rule those auto margins absorb all free space and fling the hairlines to the
+   container edges (same trap as .pdp-info, patched there too). The shelf rule is
+   empty today, but this keeps an ornament dropped into it from stranding. */
+.shelf-head .rule .ornament { margin-inline: 0; }
 /* Fixed four across, not auto-fill: a shelf is a curated row, and auto-fill would
    reflow it to five on a wide screen and strand a lone card on the next line. */
 .shelf .product-grid { grid-template-columns: repeat(4, 1fr); }
@@ -513,6 +518,9 @@ p { text-wrap: pretty; }
 .empty { text-align: center; padding: var(--s-8) var(--s-4); }
 .empty .ornament { margin-bottom: var(--s-4); }
 .empty p { color: var(--ink-soft); margin-bottom: var(--s-5); }
+/* The 404 offers two ways out side by side; inline-blocks otherwise sit a
+   source-whitespace apart. */
+.empty .btn + .btn { margin-inline-start: var(--s-3); }
 
 /* --- 18. Forms ----------------------------------------------------------- */
 .field { display: block; margin-bottom: var(--s-4); }
