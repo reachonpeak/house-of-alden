@@ -6,3 +6,20 @@
 
 # Claude Code local tooling, not part of the site
 .claude/
+
+# Dependencies and the deploy copy made by scripts/build.mjs
+node_modules/
+public/
+
+# Secrets — never commit these. The Firebase service-account key belongs in
+# Vercel's environment variables, not in this folder.
+.env
+.env.*
+!.env.example
+*service-account*.json
+*-firebase-adminsdk-*.json
+
+# Firebase emulator / CLI logs
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*

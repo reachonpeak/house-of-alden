@@ -1,7 +1,7 @@
 /* ==========================================================================
    HOUSE OF ALDEN — the collection grid
-   Runs on collection.html only. Depends on: config.js (PRODUCTS), cart.js (Money)
-   You should not need to edit this file. Edit js/config.js instead.
+   Runs on collection.html only. Depends on: config.js (PRODUCTS), live.js, cart.js (Money)
+   You should not need to edit this file. Products are edited in /admin.
    ========================================================================== */
 
 (() => {
@@ -27,15 +27,26 @@
     /* Sold Out outranks whatever badge config.js asked for — a customer needs
        to know it is gone before they need to know it is new. */
     const badge = out ? "Sold Out" : p.badge || "";
+    /* A sale: the old price struck through ahead of the new one. The hidden
+       words are for screen readers, which do not announce a strikethrough. */
+    const was = p.compareAtPrice
+      ? `<s><span class="visually-hidden">Was </span>${esc(Money.format(p.compareAtPrice))}</s> <span class="visually-hidden">now </span>`
+      : "";
     return `<a class="product-card${out ? " is-out" : ""}" href="product.html?id=${encodeURIComponent(p.id)}">
       <div class="product-card-media">
         ${badge ? `<span class="badge">${esc(badge)}</span>` : ""}
         <img src="${esc(p.image)}" width="1000" height="1000" loading="lazy" alt="${esc(p.alt)}">
       </div>
       <h3>${esc(p.name)}</h3>
-      <p class="price">${esc(Money.format(p.price))}</p>
+      <p class="price">${was}${esc(Money.format(p.price))}</p>
     </a>`;
   }
+
+  /* Stand-ins for the moment a first-time visitor waits for the catalogue
+     (js/live.js) — so the grid keeps its shape instead of jumping. */
+  const placeholder = `<div class="product-card is-placeholder" aria-hidden="true">
+      <div class="product-card-media"></div><span class="placeholder-line"></span><span class="placeholder-line placeholder-line--short"></span>
+    </div>`;
 
   function emptyState() {
     return `<div class="empty">
@@ -70,13 +81,23 @@
   }
 
   /* --- Render ------------------------------------------------------------- */
+  let current = "all";
+
   function apply(filter, announce) {
+    current = filter;
+    const waiting = typeof Live !== "undefined" && Live.pending;
     const items = filter === "all" ? PRODUCTS : PRODUCTS.filter((p) => p.category === filter);
 
     /* .empty is a full-width block. While it is showing the container must not
        be a grid, or it would be squeezed into one 240px column. */
-    grid.classList.toggle("product-grid", items.length > 0);
-    grid.innerHTML = items.length ? items.map(card).join("") : emptyState();
+    grid.classList.toggle("product-grid", waiting || items.length > 0);
+    if (waiting) {
+      grid.innerHTML = placeholder.repeat(8);
+      grid.setAttribute("aria-busy", "true");
+    } else {
+      grid.removeAttribute("aria-busy");
+      grid.innerHTML = items.length ? items.map(card).join("") : emptyState();
+    }
 
     buttons.forEach((b) => {
       const on = b.dataset.filter === filter;
@@ -109,4 +130,7 @@
   /* Silent on load: an aria-live region should not read a count nobody asked
      for. The first press is the first announcement. */
   apply(readFilter(), false);
+
+  /* The admin changed the catalogue: redraw the same view, silently. */
+  document.addEventListener("hoa:live", () => apply(current, false));
 })();

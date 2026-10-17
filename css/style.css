@@ -408,6 +408,30 @@ p { text-wrap: pretty; }
 }
 .product-card.is-out .product-card-media img { opacity: .55; }
 
+/* A sale (compare-at price set in the admin): the old price struck through,
+   ahead of the new one. */
+.price s { color: var(--ink-soft); text-decoration-thickness: 1px; margin-right: 6px; }
+
+/* --- 15a. Placeholders ----------------------------------------------------
+   Seen only by a first-time visitor, for the moment the catalogue takes to
+   arrive (js/live.js). Paper blocks in the exact shape of what replaces them,
+   so nothing jumps when it lands. */
+.is-placeholder .product-card-media,
+.pdp.is-placeholder .pdp-media { animation: hoa-breathe 1.6s var(--ease) infinite alternate; }
+.pdp.is-placeholder .pdp-media { aspect-ratio: 1; }
+.placeholder-line {
+  display: block;
+  height: 10px;
+  width: 62%;
+  margin: var(--s-3) auto 0;
+  background: var(--paper-deep);
+  opacity: .55;
+}
+.placeholder-line--short { width: 34%; margin-top: var(--s-2); }
+.placeholder-line--title { height: 28px; width: 80%; margin: 0 0 var(--s-3); }
+.pdp-info .placeholder-line { margin-inline: 0; }
+@keyframes hoa-breathe { from { opacity: 1; } to { opacity: .55; } }
+
 /* --- 15b. Shelf (a category run on the home page) ------------------------ */
 .shelf { padding: var(--s-7) var(--s-6); border-top: 1px solid var(--line); }
 .shelf-head { text-align: center; margin-bottom: var(--s-6); }

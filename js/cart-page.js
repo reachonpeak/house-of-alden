@@ -73,7 +73,7 @@
       announce(`${line.name} removed from your cart.`);
       return;
     }
-    const n = Math.min(99, qty);
+    const n = Math.min(Cart.cap(line.id), qty);   // 99, or fewer when stock is tracked
     if (n === line.qty) { render(); return; }   // at the ceiling — redraw to reset the field
     Cart.setQty(line.id, n);
     announce(
@@ -236,6 +236,13 @@
        space-between totals row. */
     const p = el("p", "notice", notice.text);
     p.setAttribute("role", notice.role);
+    if (notice.link) {
+      const a = el("a", null, notice.link.text);
+      a.href = notice.link.href;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      p.append(" ", a);
+    }
     return p;
   }
 
@@ -258,6 +265,15 @@
 
     if (!result.ok) {
       notice = { role: "alert", text: result.reason };
+    } else if (result.recorded) {
+      /* The shop has the order and the cart is empty, so this message is all
+         that is left on the page — it carries the way back to WhatsApp. */
+      notice = {
+        role: "status",
+        text: `Thank you — order ${result.order} is placed. WhatsApp has opened with the details: ` +
+              "press send there and we will reply to confirm.",
+        link: { href: result.url, text: "Open WhatsApp again" },
+      };
     } else if (result.cleared) {
       /* A provider that took payment has already emptied the cart itself. */
       notice = { role: "status", text: "Payment received. Your order is confirmed and we will write to you about dispatch." };

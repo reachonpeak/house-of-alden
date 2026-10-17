@@ -1,7 +1,7 @@
 /* ==========================================================================
    HOUSE OF ALDEN — the home page shelves
-   Runs on index.html only. Depends on: config.js (PRODUCTS), cart.js (Money)
-   You should not need to edit this file. Edit js/config.js instead.
+   Runs on index.html only. Depends on: config.js (PRODUCTS), live.js, cart.js (Money)
+   You should not need to edit this file. Products are edited in /admin.
    ========================================================================== */
 
 (() => {
@@ -11,8 +11,8 @@
      thing that grows — otherwise the home page slowly turns into a second,
      worse collection page. The CSS backs this up: .shelf .product-grid is a
      fixed four columns, so a fifth card would strand itself alone on a second
-     line. The first four in config.js win; reordering that list is how the
-     owner chooses what the home page shows. */
+     line. The first four by "Display order" in the admin win; changing that
+     number is how the owner chooses what the home page shows. */
   const PER_SHELF = 4;
 
   /* The grid ids are the contract with index.html. The <section> around each is
@@ -42,32 +42,56 @@
     /* Sold Out outranks whatever badge config.js asked for — a customer needs
        to know it is gone before they need to know it is new. */
     const badge = out ? "Sold Out" : p.badge || "";
+    /* A sale: the old price struck through ahead of the new one. The hidden
+       words are for screen readers, which do not announce a strikethrough. */
+    const was = p.compareAtPrice
+      ? `<s><span class="visually-hidden">Was </span>${esc(Money.format(p.compareAtPrice))}</s> <span class="visually-hidden">now </span>`
+      : "";
     return `<a class="product-card${out ? " is-out" : ""}" href="product.html?id=${encodeURIComponent(p.id)}">
       <div class="product-card-media">
         ${badge ? `<span class="badge">${esc(badge)}</span>` : ""}
         <img src="${esc(p.image)}" width="1000" height="1000" loading="lazy" alt="${esc(p.alt)}">
       </div>
       <h3>${esc(p.name)}</h3>
-      <p class="price">${esc(Money.format(p.price))}</p>
+      <p class="price">${was}${esc(Money.format(p.price))}</p>
     </a>`;
   }
 
-  /* --- Render ------------------------------------------------------------- */
-  SHELVES.forEach(({ category, gridId }, i) => {
-    const grid = grids[i];
-    if (!grid) return;
+  /* Stand-ins for the moment a first-time visitor waits for the catalogue
+     (js/live.js) — so the shelf keeps its shape instead of jumping. */
+  const placeholder = `<div class="product-card is-placeholder" aria-hidden="true">
+      <div class="product-card-media"></div><span class="placeholder-line"></span><span class="placeholder-line placeholder-line--short"></span>
+    </div>`;
 
-    const items = PRODUCTS.filter((p) => p.category === category).slice(0, PER_SHELF);
+  /* --- Render -------------------------------------------------------------
+     Runs on load and again whenever the admin changes the catalogue. */
+  function render() {
+    const waiting = typeof Live !== "undefined" && Live.pending;
 
-    /* Sell nothing in this category and the whole shelf goes — head, rule,
-       "View all" and all. A heading over an empty grid reads as a bug, and the
-       button underneath would lead to an empty filter. */
-    if (!items.length) {
+    SHELVES.forEach(({ category, gridId }, i) => {
+      const grid = grids[i];
+      if (!grid) return;
       const shelf = grid.closest(".shelf");
-      if (shelf) shelf.hidden = true;
-      return;
-    }
 
-    grid.innerHTML = items.map(card).join("");
-  });
+      if (waiting) {
+        grid.innerHTML = placeholder.repeat(PER_SHELF);
+        grid.setAttribute("aria-busy", "true");
+        return;
+      }
+      grid.removeAttribute("aria-busy");
+
+      const items = PRODUCTS.filter((p) => p.category === category).slice(0, PER_SHELF);
+
+      /* Sell nothing in this category and the whole shelf goes — head, rule,
+         "View all" and all. A heading over an empty grid reads as a bug, and the
+         button underneath would lead to an empty filter. */
+      if (shelf) shelf.hidden = !items.length;
+      if (!items.length) return;
+
+      grid.innerHTML = items.map(card).join("");
+    });
+  }
+
+  render();
+  document.addEventListener("hoa:live", render);
 })();

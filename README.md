@@ -1,7 +1,34 @@
 # House of Alden — website
 
-A static shop for watches and earrings. No build step, no database, no monthly fee.
-Plain HTML, CSS and JavaScript — it will still work in ten years.
+A shop for watches and earrings, with its own Shopify-style admin at **`/admin`**.
+The shop pages are still plain HTML, CSS and JavaScript; products, orders, stock,
+customers and settings live in Firebase and are managed from the admin. A change saved
+in the admin shows on the website within a second or two — no editing files, no upload.
+
+---
+
+## Your admin: yourdomain/admin
+
+Sign in at **`https://house-of-alden.vercel.app/admin`** (or `/admin` on your own domain)
+with the owner account. What is there:
+
+| Section | What you do there |
+|---|---|
+| **Home** | Sales, orders, average order value and units sold for today / 7 / 30 / 90 days / 12 months, compared with the period before. Things to do (orders to send, payments pending, low stock), top products, recent orders. |
+| **Orders** | Every order, live, with a sound and a notice when a new one arrives. Filter (Unfulfilled, Unpaid, Open, Archived, Cancelled), search, export CSV. Open one to mark it paid, fulfil it (with tracking, and a ready-made WhatsApp message to the customer), refund, cancel (with restock), archive, comment, print a packing slip. **Create order** records orders taken on WhatsApp or by phone. |
+| **Products** | Add, edit, delete. Photos (upload, reorder, alt text), price and compare-at (sale) price, cost and margin, stock, specifications, badge, category, display order, search listing. Active / Draft / Archived. |
+| **Inventory** | Stock for every piece: committed (sold, not yet sent), available, on hand. Change counts in place. |
+| **Customers** | Created automatically from website orders (one per phone number), or added by hand. Orders and total spent per customer. |
+| **Settings** | WhatsApp order number, contact email, Instagram / Pinterest, shipping charges, low-stock alert level, staff accounts (owner only), your password, new-order sound and desktop notifications. |
+
+**Stock.** Pieces that were "in stock" before the admin existed start as *not tracked*
+(always buyable, exactly as before). Open **Inventory**, press **Track stock** and enter
+how many you have — from then on every order counts it down, and at 0 the piece shows
+"Sold Out" on the website by itself.
+
+**Photographs uploaded in the admin** are resized and saved as WebP before they upload,
+and appear on the shop at once. The README section on replacing photographs below still
+applies to the original files in `images/`.
 
 ---
 
@@ -35,13 +62,36 @@ Then open <http://localhost:8177>. Press `Ctrl+C` to stop it.
 
 ## Putting it online
 
-Easiest first: go to <https://app.netlify.com/drop> and drag this whole folder onto the
-page. It is live in about ten seconds, on a free address like
-`house-of-alden.netlify.app`. You can attach your own domain later from the same
-dashboard.
+The site lives on **Vercel**, deployed from GitHub. Vercel is now needed rather than
+any plain host, because of the small server in `api/` (it records website orders with
+trusted prices, and lets the owner add staff). `vercel.json` tells Vercel everything:
+it installs `firebase-admin`, runs `scripts/build.mjs` — which only *copies* the shop
+and admin into `public/`, so notes, rules and server code are never published — and
+adds the security headers.
 
-GitHub Pages, Cloudflare Pages and Vercel all work the same way. Any plain web host
-will do — there is nothing to install on the server.
+**One-time setup** (in this order):
+
+1. **Firebase rules.** Firebase console → Firestore Database → Rules: paste
+   `firestore.rules`, Publish. Firebase console → Storage → Rules: paste
+   `storage.rules`, Publish. Until this is done the shop shows the catalogue in
+   `js/config.js` and the admin can't read anything.
+2. **Vercel environment variables.** Vercel → Project → Settings → Environment
+   Variables: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
+   from the Firebase service-account key (see `.env.example`). Then redeploy.
+   **Never** put the key file in this folder — anything here can end up public.
+3. **Owner account and starting catalogue** — already done for this project with
+   `scripts/setup-firebase.mjs` (see the comments at the top of that file to re-run it).
+
+Other hosts (Netlify drop, GitHub Pages) still serve the shop and the admin, but not
+`api/`: orders then go to WhatsApp without being recorded, and staff can't be added.
+
+**Preview on your computer:** `python3 -m http.server 8177` still works for the shop,
+and the admin opens at <http://localhost:8177/admin/> (go through its menus — a direct
+link like `/admin/orders` needs Vercel). `api/` runs only on Vercel (or `npx vercel dev`).
+
+**Tests:** `npm install` then `npm test` runs the security rules, the order server, the
+staff server, the setup script, the shop pages and the admin against Firebase's local
+emulators (needs Java and the Firebase CLI).
 
 ### Once you have your own domain, run this once
 
@@ -82,83 +132,39 @@ shows when someone shares your link on WhatsApp) were both made from the same ma
 
 ## Changing things
 
-**Everything you will normally want to change lives in one file: `js/config.js`.**
-Open it in any text editor. Save. Refresh the browser. Done.
+**Products, prices, stock, labels, photos, the WhatsApp number, shipping and social
+links are all changed in the admin** (see above). Save there and the website follows.
 
-Two rules: keep the `"` quote marks around text, and keep the commas at the ends of
-lines. If the page goes blank, you have almost certainly deleted one of those — press
-`F12` in the browser, read the red error, and put it back.
+| To… | In the admin |
+|---|---|
+| Change a price, or show a sale price | Products → the piece → Pricing |
+| Mark something sold out | Inventory → Available 0 (with tracking on), or set the product to Draft to hide it |
+| Put a label on something ("New", "Last One") | Products → the piece → Badge |
+| Add a new product | Products → Add product |
+| Choose what the home page shelves show first | Products → the piece → Display order |
+| Change who receives the orders | Settings → Store details → WhatsApp number |
+| Charge for shipping | Settings → Shipping |
+| Instagram and Pinterest links | Settings → Store details |
 
-### Change a price
+> A product's **URL handle** (its `id`) is set once, when it is created. It is what
+> customers' carts and shared links remember, so it can't be changed afterwards.
 
-Find the product, edit the number. No `₹`, no commas:
+`js/config.js` still holds the business details, the checkout switch (WhatsApp /
+Razorpay), the journal entries, and a **fallback** copy of the catalogue that the shop
+shows only if Firebase can't be reached. Editing its products no longer changes the
+live shop. If you do edit it: keep the `"` quote marks and the commas at line ends.
 
-```js
-price: 8900,        //  ✅ right
-price: "₹8,900",    //  ❌ wrong — the site does the formatting for you
-```
-
-### Mark something sold out
-
-```js
-stock: false,
-```
-
-The piece stays on the site with a "Sold Out" badge, cannot be added to the cart, and
-offers an "Enquire" button on WhatsApp instead.
-
-### Put a label on something
-
-```js
-badge: "New",        // or "Last One", or "" for nothing
-```
-
-### Add a new product
-
-Copy an existing block from `{` to `},` and paste it below. Then change `id` to
-something new and unique — lowercase, no spaces, e.g. `"pearl-hoop"`.
-
-> **Never change the `id` of a product that is already live.** It is what a customer's
-> cart remembers. Changing it silently empties their basket.
-
-### Change who receives the orders
-
-```js
-whatsapp: "917087511282",
-```
-
-Country code, no `+`, no spaces. This one number receives every order and every
-contact-form message.
-
-### Charge for shipping
-
-```js
-shipping: {
-  flatRate: 120,      // charge ₹120
-  freeAbove: 5000,    // ...unless the order is ₹5,000 or more
-},
-```
-
-`flatRate: 0` means shipping is always free.
-
-### Your Instagram and Pinterest
-
-In `js/config.js` under `social`, **and** in the footer of each `.html` file — the
-footer links are written into the pages so they still work with JavaScript switched
-off. Search for `instagram.com` and replace.
+The footer and contact-page links are written into each `.html` file so they still work
+with JavaScript off; `js/live.js` points them at whatever is saved in Settings.
 
 ---
 
 ## Replacing the photographs
 
-Put your own file in `images/`, then point the product at it in `js/config.js`:
-
-```js
-image: "images/watch-alden-heritage.webp",
-```
-
-The simplest path is to **keep the existing filenames** — save your photo over the old
-file with the same name and you need not edit `config.js` at all.
+**Product photos: upload them in the admin** — Products → the piece → Media → Add.
+Drag them in, put the best one first (it is the one the shop and Google show), remove
+the placeholder, and give each photo its alt text (the pencil). Phone photos are fine:
+they are turned upright and resized before they upload.
 
 **What makes a good photo here:**
 
@@ -166,61 +172,72 @@ file with the same name and you need not edit `config.js` at all.
 |---|---|
 | Shape | Square (1:1). Products are cropped to a square — anything else gets cut off. |
 | Size | 1000 × 1000 pixels is plenty. |
-| Format | `.webp` or `.jpg`. If you save a `.jpg`, update the filename in `config.js`. |
+| Format | `.jpg`, `.png` or `.webp` — the admin converts them. |
 | Background | Plain and pale — cream paper, a light cloth. It suits the design and keeps the piece the subject. |
 | Light | Near a window, no flash. Flash flattens metal and kills the point of a gold piece. |
 
 Shoot all of them the same way, on the same surface, in the same light. A consistent
 set of average photos looks far more professional than a mix of good and bad ones.
 
-Also update the `alt` line next to each image — it is what blind customers hear and
+Also write each photo's alt text — it is what blind customers hear and
 what Google reads. Describe the piece plainly: *"Gold drop earrings with a freshwater
 pearl."*
 
-The `lookbook-*.webp` files and the three mood photos on the home page can be
-replaced the same way; their names are used directly inside `lookbook.html`,
+The `lookbook-*.webp` files and the three mood photos on the home page are part of
+the pages themselves, not the catalogue: save your photo over the file of the same
+name in `images/`. Their names are used directly inside `lookbook.html`,
 `index.html` and `about.html`.
 
 ---
 
 ## How an order reaches you
 
-1. A customer adds pieces to their cart. The cart lives in their own browser.
+1. A customer adds pieces to their cart. The cart lives in their own browser, and
+   always shows today's prices and stock (a piece that sells out mid-visit says so).
 2. They press **Place order on WhatsApp**.
-3. WhatsApp opens with the whole order typed out — items, quantities, total, and their
-   name, phone and address if they filled them in.
-4. They press send. It arrives on **+91 70875 11282**.
-5. You reply to agree payment and delivery.
+3. The order is **recorded first** (`api/orders.js`): the server reads every price and
+   the shipping charge from the database — never from the browser — checks stock,
+   gives the order its number (#1001, #1002 …), sets the pieces aside and saves the
+   customer. It appears in the admin straight away, with a sound.
+4. WhatsApp opens with the order typed out, number included. They press send; it
+   arrives on the number in **Settings → Store details**.
+5. You reply to agree payment and delivery, then mark it **Paid** and **Fulfilled** in
+   the admin (with a tracking number, and a ready-made WhatsApp message to them).
 
-The cart is deliberately **not** emptied when they press the button — if WhatsApp fails
-to open, their basket is still there. It clears when they finish or empty it themselves.
+Once an order is recorded the cart empties, and the page keeps a link to open WhatsApp
+again. If the order server can't be reached the sale is never lost: WhatsApp still
+opens with the order (just without a number) and the cart is kept, exactly as before.
+Pressing the button twice never makes two orders.
 
-Nothing is stored on a server, no card details are ever handled by this site, and there
-is nothing to secure. When you want real card and UPI payments on the site instead,
-read **[RAZORPAY.md](RAZORPAY.md)** — it is a one-word change here plus a small server.
+No card details are ever handled by this site. When you want real card and UPI
+payments, read **[RAZORPAY.md](RAZORPAY.md)**.
 
 ---
 
 ## What is in the folder
 
 ```
-index.html          Home
-about.html          The story
-collection.html     The shop grid, filterable
-product.html        One piece — driven by ?id=... in the address
-lookbook.html       Editorial gallery
-journal.html        Writing (index only; the posts are not written yet)
-contact.html        Enquiry form + your real details
-cart.html           Cart and checkout
+index.html …        The shop pages (home, about, collection, product, lookbook,
+cart.html           journal, contact, cart). Plain HTML.
 
-js/config.js        ◀── YOUR DETAILS AND YOUR PRODUCTS. The file you edit.
+admin/              The admin at /admin (no build step: plain JavaScript modules).
+api/orders.js       Records website orders with trusted prices and stock.
+api/admin/staff.js  Adds / removes staff (store owner only).
+api/_firebase.js    Server-side Firebase. Reads its key from Vercel's settings.
+
+js/live.js          Keeps the shop in step with the admin, live.
+js/firebase-config.js  Public Firebase web settings (not a secret).
+js/config.js        Business details, the checkout switch, the fallback catalogue.
 js/cart.js          Cart maths and checkout. Leave alone.
-js/main.js          Menu, cart counter. Leave alone.
-js/collection.js    Builds the shop grid.
-js/product.js       Builds the product page.
-js/cart-page.js     Builds the cart page.
+js/main.js …        Menu, cart counter, page builders.
 
-css/style.css       Every colour, size and spacing. One file.
+firestore.rules     Database security rules (paste into the Firebase console).
+storage.rules       Photo storage security rules (paste into the Firebase console).
+vercel.json         Hosting: build, the /admin address, security headers.
+scripts/            build.mjs (deploy copy), setup-firebase.mjs (owner account).
+tests/              npm test — rules, servers, shop and admin on local emulators.
+
+css/style.css       The shop's colours, sizes and spacing. One file.
 images/             All photography (placeholders) + your logo, favicon, share card.
 set-domain.sh       Run once when you have a domain. See above.
 DESIGN_SPEC.md      The design rules, if a developer ever picks this up.
@@ -233,8 +250,9 @@ RAZORPAY.md         How to switch on real payments later.
 - [ ] Check every price, description and specification against what you actually sell.
 - [ ] Buy a domain, then run `./set-domain.sh yourdomain.com` (see above) — without it, shared links show no picture.
 - [ ] Ask your logo designer for the original vector file and drop it in (see [Your logo](#your-logo)).
-- [ ] Put your real Instagram and Pinterest links in.
+- [ ] Put your real Instagram and Pinterest links in (Admin → Settings → Store details).
 - [ ] Write the three journal posts, or delete `journal.html` and its two nav links.
-- [ ] Decide on shipping charges.
+- [ ] Decide on shipping charges (Admin → Settings → Shipping).
+- [ ] Turn on stock tracking for each piece (Admin → Inventory → Track stock).
 - [ ] Add a returns/exchange policy — customers look for one, and Indian consumer law expects it.
 - [ ] Buy a domain and point it at the host.
