@@ -1,7 +1,9 @@
 # House of Alden — robots.txt
 #
-# The shop is public. Every page here is meant to be found, so nothing is
-# disallowed. The map is sitemap.xml, sitting next to this file.
+# The shop is public. Every shop page here is meant to be found. The only
+# things kept out are the staff admin (/admin) and the order server (/api) —
+# both also send noindex, and the admin needs a staff sign-in regardless.
+# The map is sitemap.xml, sitting next to this file.
 #
 # The Sitemap line needs the full https:// address rather than a path, so it is
 # one of the places ./set-domain.sh rewrites. Run that once after your own
@@ -9,5 +11,7 @@
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
 
 Sitemap: https://house-of-alden.vercel.app/sitemap.xml

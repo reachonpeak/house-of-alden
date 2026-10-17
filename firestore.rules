@@ -1,0 +1,183 @@
+rules_version = '2';
+
+// ==========================================================================
+// HOUSE OF ALDEN — Firestore security rules
+// --------------------------------------------------------------------------
+// Paste into: Firebase console → Firestore Database → Rules → Publish.
+// (Or, with the Firebase CLI: firebase deploy --only firestore:rules)
+//
+// Who can do what:
+//   • Anyone may READ active products and the public store settings — that
+//     is exactly what the shop window already shows.
+//   • Only staff signed in to /admin may read or change anything else.
+//     Staff = custom claim admin == true (set by the server) AND a
+//     staff/{uid} document (deleted the moment access is removed — a claim
+//     alone lives on in an already-issued token for up to an hour).
+//   • Web orders are written by the server (/api/orders) with the Admin SDK,
+//     which is not subject to these rules. A shopper can never write here.
+// ==========================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Who is asking ----------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.admin == true
+        && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    // The store owner (set only by scripts/setup-firebase.mjs). Only the owner
+    // may change where orders go (the WhatsApp number) and the shop settings.
+    function isOwner() {
+      return isAdmin() && request.auth.token.role == 'owner';
+    }
+
+    // ---- Shapes -----------------------------------------------------------
+
+    function str(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // Whole rupees, never negative.
+    function money(v) {
+      return v is int && v >= 0 && v <= 100000000;
+    }
+
+    function optMoney(v) {
+      return v == null || money(v);
+    }
+
+    function httpsOrEmpty(v) {
+      return str(v, 300) && v.matches('^(https://[^ ]+)?$');
+    }
+
+    function validProduct(d) {
+      return d.keys().hasAll(['name', 'status', 'category', 'price', 'trackInventory', 'quantity', 'images'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 140
+        && d.status in ['active', 'draft', 'archived']
+        && d.category in ['watches', 'earrings']
+        && money(d.price)
+        && optMoney(d.get('compareAtPrice', null))
+        && d.trackInventory is bool
+        && d.quantity is int && d.quantity >= -1000000 && d.quantity <= 1000000
+        && d.images is list && d.images.size() <= 10
+        && d.get('specs', []) is list && d.get('specs', []).size() <= 30
+        && d.get('tags', []) is list && d.get('tags', []).size() <= 30
+        && d.get('continueSelling', false) is bool
+        && d.get('position', 0) is int
+        && str(d.get('badge', ''), 24)
+        && str(d.get('blurb', ''), 400)
+        && str(d.get('description', ''), 8000)
+        && str(d.get('sku', ''), 64)
+        && str(d.get('seoTitle', ''), 160)
+        && str(d.get('seoDescription', ''), 400);
+    }
+
+    function validStoreSettings(d) {
+      return d.get('whatsapp', '') is string
+        && d.get('whatsapp', '').matches('^[0-9]{0,15}$')
+        && str(d.get('email', ''), 254)
+        && httpsOrEmpty(d.get('instagram', ''))
+        && httpsOrEmpty(d.get('pinterest', ''))
+        && d.get('shipping', {}) is map
+        && money(d.get('shipping', {}).get('flatRate', 0))
+        && money(d.get('shipping', {}).get('freeAbove', 0));
+    }
+
+    function validOrder(d) {
+      return d.number is int && d.number > 0
+        && d.status in ['open', 'archived', 'cancelled']
+        && d.financialStatus in ['pending', 'paid', 'refunded', 'voided']
+        && d.fulfillmentStatus in ['unfulfilled', 'fulfilled']
+        && d.lines is list && d.lines.size() > 0 && d.lines.size() <= 100
+        && money(d.subtotal) && money(d.shipping) && money(d.total)
+        && d.get('timeline', []) is list && d.get('timeline', []).size() <= 500
+        && str(d.get('note', ''), 4000);
+    }
+
+    function validCustomer(d) {
+      return d.name is string && d.name.size() <= 140
+        && str(d.get('phone', ''), 32)
+        && str(d.get('email', ''), 254)
+        && str(d.get('address', ''), 600)
+        && str(d.get('note', ''), 4000)
+        && d.get('tags', []) is list && d.get('tags', []).size() <= 30;
+    }
+
+    // ---- Catalogue (public window) ----------------------------------------
+
+    // The product id is its URL handle (product.html?id=...) and what a
+    // shopper's cart remembers, so it is a slug and it never changes.
+    match /products/{productId} {
+      allow get, list: if resource.data.status == 'active' || isAdmin();
+      allow create, update: if isAdmin()
+        && productId.matches('^[a-z0-9][a-z0-9-]{0,62}$')
+        && validProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Cost per item lives apart from the product: product documents are
+    // public, and what a piece costs the house is not.
+    match /productCosts/{productId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin()
+        && optMoney(request.resource.data.get('cost', null));
+    }
+
+    // settings/store is public (WhatsApp number, shipping, social links —
+    // all already printed on the site) and only the owner may change it: the
+    // WhatsApp number decides who receives every order. Every other settings
+    // doc is staff-only.
+    match /settings/{docId} {
+      allow get: if docId == 'store' || isAdmin();
+      allow list: if isAdmin();
+      allow create, update: if (docId == 'store' && isOwner() && validStoreSettings(request.resource.data))
+        || (docId != 'store' && isAdmin());
+      allow delete: if false;
+    }
+
+    // ---- Back office (staff only) -----------------------------------------
+
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validOrder(request.resource.data);
+      allow update: if isAdmin()
+        && validOrder(request.resource.data)
+        && request.resource.data.number == resource.data.number;
+      allow delete: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && validCustomer(request.resource.data);
+    }
+
+    match /counters/{counterId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.next is int
+        && request.resource.data.next >= 1;
+      allow delete: if false;
+    }
+
+    // Staff records are written only by the server (/api/admin/staff), which
+    // also sets the matching custom claim. Nobody edits their own access.
+    match /staff/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Server-only bookkeeping (order rate limiting).
+    match /ratelimits/{key} {
+      allow read, write: if false;
+    }
+
+    // Anything not matched above is denied.
+  }
+}

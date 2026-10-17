@@ -68,13 +68,14 @@
 
   /* Every route into the cart passes through here. "abc" reaches us as "" from
      a number field, "" and " " coerce to 0, and both floor to MIN_QTY. */
-  function clampQty(value) {
+  function clampQty(value, max = MAX_QTY) {
     const n = Math.floor(Number(value));
     if (Number.isNaN(n)) return MIN_QTY;
-    return Math.min(MAX_QTY, Math.max(MIN_QTY, n));
+    return Math.min(max, Math.max(MIN_QTY, n));
   }
 
-  function qtyStepper(status) {
+  /* `max` is 99, or fewer when the admin tracks this piece's stock. */
+  function qtyStepper(status, max) {
     const wrap = el("div", "qty");
 
     const label = el("label", "visually-hidden", "Quantity");
@@ -84,7 +85,7 @@
     input.id = "pdp-qty";
     input.type = "number";
     input.min = String(MIN_QTY);
-    input.max = String(MAX_QTY);
+    input.max = String(max);
     input.step = "1";
     input.value = String(MIN_QTY);
     input.inputMode = "numeric";
@@ -98,7 +99,7 @@
     plus.setAttribute("aria-label", "Increase quantity");
 
     const step = (delta) => {
-      const next = clampQty(clampQty(input.value) + delta);
+      const next = clampQty(clampQty(input.value, max) + delta, max);
       input.value = String(next);
       status.textContent = `Quantity ${next}`;
     };
@@ -109,7 +110,7 @@
     /* Corrected when the field is committed, never mid-keystroke — rewriting
        the value on every input event would fight the caret. */
     input.addEventListener("change", () => {
-      input.value = String(clampQty(input.value));
+      input.value = String(clampQty(input.value, max));
     });
 
     wrap.append(label, minus, input, plus);
@@ -278,18 +279,24 @@
       return wrap;
     }
 
-    const { wrap: qty, input } = qtyStepper(status);
+    const max = Cart.cap(p.id);
+    const { wrap: qty, input } = qtyStepper(status, max);
 
     add.addEventListener("click", () => {
-      const n = clampQty(input.value);
+      const n = clampQty(input.value, max);
       input.value = String(n);
-      const ok = Cart.add(p.id, n);
+      /* Cart.add never goes past the stock cap and says how many it added. */
+      const added = Cart.add(p.id, n);
       Toast.show(
-        ok
-          ? n === 1
+        added
+          ? added === 1
             ? `${p.name} added to your cart`
-            : `${p.name} × ${n} added to your cart`
-          : `${p.name} is no longer available.`
+            : `${p.name} × ${added} added to your cart`
+          : !p.stock
+            ? `${p.name} is no longer available.`
+            : max < MAX_QTY
+              ? `Only ${max} available — all of them are already in your cart.`
+              : `Your cart already holds as many of ${p.name} as one order can.`
       );
     });
 
@@ -297,11 +304,24 @@
     return wrap;
   }
 
+  /* The price, with the old one struck through ahead of it during a sale. The
+     hidden words are for screen readers, which do not announce a strikethrough. */
+  function priceTag(p) {
+    const tag = el("p", "price");
+    if (p.compareAtPrice) {
+      const was = el("s");
+      was.append(el("span", "visually-hidden", "Was "), document.createTextNode(Money.format(p.compareAtPrice)));
+      tag.append(was, " ", el("span", "visually-hidden", "now "));
+    }
+    tag.append(Money.format(p.price));
+    return tag;
+  }
+
   function info(p) {
     const box = el("div", "pdp-info");
     box.append(
       el("h1", null, p.name),
-      el("p", "price", Money.format(p.price)),
+      priceTag(p),
       rule(),
       el("p", "pdp-desc", p.description || p.blurb || "")
     );
@@ -337,7 +357,7 @@
     img.setAttribute("loading", "lazy"); // always below the fold, under the PDP
     box.append(img);
 
-    a.append(box, el("h3", null, p.name), el("p", "price", Money.format(p.price)));
+    a.append(box, el("h3", null, p.name), priceTag(p));
     return a;
   }
 
@@ -392,7 +412,11 @@
         "@context": "https://schema.org",
         "@type": "Product",
         name: p.name,
-        image: SITE + String(p.image).replace(/^\/+/, ""),
+        /* Photographs uploaded in the admin already carry a full https://
+           address; the original ones are paths inside this site. */
+        image: /^https:\/\//.test(String(p.image))
+          ? String(p.image)
+          : SITE + String(p.image).replace(/^\/+/, ""),
         description: p.description || p.blurb || "",
         sku: p.id,
         /* Read from config.js, not spelled out again. config.js is billed as the
@@ -438,9 +462,16 @@
     document.querySelectorAll("[data-pdp-extra]").forEach((node) => node.remove());
   }
 
+  /* The page's own description, kept so a piece without one of its own (set
+     under "Search engine listing" in the admin) falls back to it. */
+  const metaDescription = document.querySelector('meta[name="description"]');
+  const defaultDescription = metaDescription ? metaDescription.getAttribute("content") : "";
+
   function renderProduct(p) {
     clearExtras();
-    document.title = `${p.name} — House of Alden`;
+    mount.removeAttribute("aria-busy");
+    document.title = p.seoTitle || `${p.name} — House of Alden`;
+    if (metaDescription) metaDescription.setAttribute("content", p.seoDescription || p.blurb || defaultDescription);
     mount.className = "pdp";
     mount.replaceChildren(media(p), info(p));
 
@@ -450,13 +481,31 @@
     jsonLd(p);
   }
 
+  /* A first-time visitor's catalogue is still on its way (js/live.js). Hold
+     the page's shape rather than call a real piece "not in the catalogue". */
+  function renderWaiting() {
+    if (mount.hasAttribute("aria-busy")) return;
+    clearExtras();
+    mount.className = "pdp is-placeholder";
+    mount.setAttribute("aria-busy", "true");
+    const box = el("div", "pdp-info");
+    box.append(
+      el("span", "placeholder-line placeholder-line--title"),
+      el("span", "placeholder-line"),
+      el("span", "placeholder-line placeholder-line--short")
+    );
+    mount.replaceChildren(el("div", "pdp-media"), box);
+  }
+
   function renderEmpty() {
     /* renderProduct may have got half-way before it threw. A dead end that still
        carries the last product's suggestions and structured data is worse than
        no dead end at all. */
     clearExtras();
+    mount.removeAttribute("aria-busy");
 
     document.title = "Piece not found — House of Alden";
+    if (metaDescription) metaDescription.setAttribute("content", defaultDescription);
     mount.className = "empty";
 
     const back = el("a", "btn btn--ghost", "See the collection");
@@ -484,14 +533,36 @@
   /* --- Boot --------------------------------------------------------------- */
 
   const id = new URLSearchParams(location.search).get("id");
-  const product = id ? catalogue.find((p) => p && p.id === id) : null;
+  let drawn = null; // what is on screen, so an unrelated catalogue change redraws nothing
 
-  try {
-    if (product) renderProduct(product);
-    else renderEmpty();
-  } catch (err) {
-    /* A half-drawn product is worse than an honest dead end. */
-    console.error("House of Alden — could not render the product page.", err);
-    renderEmpty();
+  function show() {
+    if (typeof Live !== "undefined" && Live.pending) {
+      renderWaiting();
+      return;
+    }
+    const product = id ? catalogue.find((p) => p && p.id === id) : null;
+    const sig = JSON.stringify([product, product ? relatedTo(product) : null, BUSINESS.whatsapp]);
+    if (sig === drawn) return;
+    drawn = sig;
+
+    /* A live update must not reset the quantity someone has already chosen. */
+    const before = document.getElementById("pdp-qty");
+    const keep = before ? before.value : null;
+
+    try {
+      if (product) renderProduct(product);
+      else renderEmpty();
+    } catch (err) {
+      /* A half-drawn product is worse than an honest dead end. */
+      console.error("House of Alden — could not render the product page.", err);
+      renderEmpty();
+    }
+
+    const after = document.getElementById("pdp-qty");
+    if (keep && after && product) after.value = String(clampQty(keep, Cart.cap(product.id)));
   }
+
+  show();
+  /* Price, stock or photographs changed in the admin — redraw this piece. */
+  document.addEventListener("hoa:live", show);
 })();

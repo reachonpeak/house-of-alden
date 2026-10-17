@@ -4,6 +4,18 @@ Right now the shop takes orders **on WhatsApp**. That works today and costs noth
 This document is for later — when you want customers to pay by UPI, card or netbanking
 on the site itself.
 
+> **Since the admin was added** (read this before following the steps below):
+>
+> - The site now sends a strict Content-Security-Policy (`vercel.json`). Razorpay's
+>   checkout will be blocked until you add `https://checkout.razorpay.com` to
+>   `script-src`, `https://api.razorpay.com` to `frame-src` and `connect-src`, and
+>   remove `frame-src 'none'`.
+> - Orders are already recorded with trusted prices by `api/orders.js`, on Vercel. Build
+>   the Razorpay order from that recorded order (its `total`), in the same `api/`
+>   folder, and have the webhook mark the order **Paid** — so payments show up in the
+>   admin. The `PRICES` table in Step 2 below predates the database: read prices from
+>   Firestore instead, as `api/orders.js` does.
+
 The site was built so that switching is a **one-word change** in `js/config.js`, plus
 one small server that you must run. Read the whole page before starting.
 

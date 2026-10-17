@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// ==========================================================================
+// HOUSE OF ALDEN — Cloud Storage security rules
+// --------------------------------------------------------------------------
+// Paste into: Firebase console → Storage → Rules → Publish.
+// (Or, with the Firebase CLI: firebase deploy --only storage)
+//
+//   • Product photographs (products/<folder>/<file>) can be viewed by anyone —
+//     they are the pictures on the shop.
+//   • Only staff signed in to /admin can upload or delete them, and only real
+//     image types under 8 MB. SVG is refused: it can carry script.
+//   • Every other path is closed.
+// ==========================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    match /products/{folder}/{fileName} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        && folder.matches('^[a-z0-9][a-z0-9-]{0,62}$')
+        && fileName.matches('^[A-Za-z0-9._-]{1,120}$')
+        && request.resource.size > 0
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Anything not matched above is denied.
+  }
+}

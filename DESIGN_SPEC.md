@@ -136,4 +136,8 @@ Every page: same masthead + footer markup, only the `.is-active` nav item change
 - Cart count in the masthead reflects live `localStorage` state on every page.
 - Mobile: single column below 860px; nav collapses to a disclosure button.
 - No emoji as icons. Inline SVG only.
-- No external JS/CSS frameworks. Vanilla only.
+- No external JS/CSS frameworks. Vanilla only. (One deliberate exception: `js/live.js`
+  loads the Firebase SDK from Google's CDN for the live catalogue — data, not UI. It
+  is loaded after first paint, and the shop still works from `js/config.js` without it.)
+- The admin (`/admin`) is a separate surface with its own design (Shopify/Polaris-style,
+  `admin/css/admin.css`). None of these shop tokens apply there, and vice versa.
